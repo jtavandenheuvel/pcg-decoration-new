@@ -1,0 +1,26 @@
+Project Settings: 
+
+DEBUG
+C/C++ -> General -> Additional Include Directories
+C:\Program Files\boost\boost_1_55_0;C:\Program Files\CGAL\CGAL-4.3\include;C:\Program Files\CGAL\CGAL-4.3\auxiliary\gmp\include;C:\Program Files\CGAL\CGAL-4.3\auxiliary\taucs\include;C:\Program Files\CGAL\CGAL-4.3\build\include;%(AdditionalIncludeDirectories)
+Linker -> General -> Additional Library Directories
+%(AdditionalLibraryDirectories);C:\Program Files\CGAL\CGAL-4.3\build\lib\Debug;C:\Program Files\boost\boost_1_55_0\lib32-msvc-10.0;C:\Program Files\CGAL\CGAL-4.3\auxiliary\gmp\lib;C:\Program Files\CGAL\CGAL-4.3\auxiliary\taucs\lib
+Linker -> Input -> Additional Dependencies
+kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies); libgmp-10.lib; libmpfr-4.lib
+
+RELEASE
+C/C++ -> General -> Additional Include Directories
+C:\Program Files\boost\boost_1_55_0;C:\Program Files\CGAL\CGAL-4.3\include;C:\Program Files\CGAL\CGAL-4.3\auxiliary\gmp\include;C:\Program Files\CGAL\CGAL-4.3\auxiliary\taucs\include;C:\Program Files\CGAL\CGAL-4.3\build\include;%(AdditionalIncludeDirectories)
+Linker -> General -> Additional Library Directories
+%(AdditionalLibraryDirectories);C:\Program Files\CGAL\CGAL-4.3\build\lib\Release;C:\Program Files\boost\boost_1_55_0\lib32-msvc-10.0;C:\Program Files\CGAL\CGAL-4.3\auxiliary\gmp\lib;C:\Program Files\CGAL\CGAL-4.3\auxiliary\taucs\lib
+Linker -> Input -> Additional Dependencies
+kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);libgmp-10.lib;libmpfr-4.lib
+
+User variables: 
+
+BOOST_INCLUDEDIR C:\Program Files\boost\boost_1_55_0
+BOOST_LIBRARY_DIR C:\Program Files\boost\boost_1_55_0\lib32-msvc-10.0
+
+Environment variables: 
+%INCLUDE% c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\INCLUDE;c:\Program Files(x86)\Microsoft Visual Studio 10.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include;
+%LIBS% c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\INCLUDE;c:\Program Files(x86)\Microsoft Visual Studio 10.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include;
