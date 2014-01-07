@@ -43,6 +43,7 @@ namespace WindowsGame1
  
         // straight skeleton test
         private float[] output = new float[5000];
+        private float[] output2 = new float[5000];
 
         public Game1()
         {
@@ -79,13 +80,39 @@ namespace WindowsGame1
             intersectionVertices = new Vertices();
             polygon = new Polygon(new Vertices(), true);
 
+            //TEST SHAPE
+            loadTestShape();
+
             // GUI
             _gui.Init();
-
             fps.Initialize();
 
             // Load
             base.Initialize();
+        }
+
+        private void loadTestShape()
+        {
+            //initial shape to be shown for "playing" rectangle test
+            List<Point2D> list = new List<Point2D>();
+            list.Add(new Point2D(100, 200));
+            list.Add(new Point2D(410, 210));
+            list.Add(new Point2D(400, 600));
+            list.Add(new Point2D(300, 600));
+            list.Add(new Point2D(300, 500));
+            list.Add(new Point2D(285, 425));
+            list.Add(new Point2D(250, 400));
+            list.Add(new Point2D(215, 425));
+            list.Add(new Point2D(200, 500));
+            list.Add(new Point2D(200, 600));
+            list.Add(new Point2D(100, 600));
+
+            
+            foreach (Point2D point in list)
+            {
+                polygon.ControlVertices.Add(point);
+                controlPoints.Add(DrawTools.createDrawableRectangle(point));
+            }
         }
 
         /// <summary>
@@ -137,18 +164,23 @@ namespace WindowsGame1
 
 
 
-            //Calculate straight Skeleton
-            polygon.ControlVertices.ForceCounterClockWise();
-            float[] points = new float[polygon.ControlVertices.Count * 2];
-            
-            for (int i = 0, j = 0; i < polygon.ControlVertices.Count*2; j++, i=i+2)
+            //Calculate straight Skeleton 
+            output = new float[5000];
+            output2 = new float[5000];
+            if (polygon.ControlVertices.IsSimple())
             {
-                points[i] = polygon.ControlVertices[j].X;
-                points[i+1] = polygon.ControlVertices[j].Y;
-            }
+                polygon.ControlVertices.ForceCounterClockWise();
+               
+                float[] points = new float[polygon.ControlVertices.Count * 2];
             
-            cpp.times2(points, output, points.Length);
-
+                for (int i = 0, j = 0; i < polygon.ControlVertices.Count*2; j++, i=i+2)
+                {
+                    points[i] = polygon.ControlVertices[j].X;
+                    points[i+1] = polygon.ControlVertices[j].Y;
+                }
+            
+                cpp.times2(points, output, output2, points.Length, _gui.getSubdivideSize());
+            }
             
 
 
@@ -290,7 +322,8 @@ namespace WindowsGame1
             polygon.Draw(this);
 
             //Draw skeleton V1 
-            drawSkeleton();
+            drawSkeleton(output, Color.Blue);
+            drawSkeleton(output2, Color.Red);
 
             //draw menu
             _gui.Draw();
@@ -304,7 +337,7 @@ namespace WindowsGame1
 
         }
 
-        private void drawSkeleton()
+        private void drawSkeleton(float[] output, Color color)
         {
             int totalVertices = output.Length/2;
             var vertices = new VertexPositionColor[totalVertices];
@@ -312,8 +345,8 @@ namespace WindowsGame1
             {
                 vertices[i].Position = new Vector3(output[j], output[j + 1], 0);
                 vertices[i + 1].Position = new Vector3(output[j + 2], output[j + 3], 0);
-                vertices[i].Color = Color.Red;
-                vertices[i + 1].Color = Color.Red;
+                vertices[i].Color = color;
+                vertices[i + 1].Color = color;
             }
             if (totalVertices > 0)
             {

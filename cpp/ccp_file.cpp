@@ -4,10 +4,11 @@
 
 #include<boost\chrono.hpp>
 #include<boost/shared_ptr.hpp>
+
 #include<CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include<CGAL/Polygon_2.h>
-#include<CGAL/Polygon_with_holes_2.h>
 #include<CGAL/create_straight_skeleton_2.h>
+#include<CGAL/create_offset_polygons_2.h>
 
 #include "print.h"
 
@@ -15,8 +16,11 @@
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K ;
 typedef K::Point_2                   Point ;
 typedef CGAL::Polygon_2<K>           Polygon_2 ;
+typedef boost::shared_ptr<Polygon_2> PolygonPtr ;
 typedef CGAL::Straight_skeleton_2<K> Ss ;
 typedef boost::shared_ptr<Ss> SsPtr ;
+typedef std::vector<PolygonPtr> PolygonPtrVector ;
+typedef std::vector< boost::shared_ptr< CGAL::Polygon_2<K> > > PolygonVector ;
 
 cpp_file::cpp_file(void)  
 {  
@@ -26,7 +30,7 @@ cpp_file::~cpp_file(void)
 {  
 }  
   
-void cpp_file::times2(float* input, float* output, int lenght)  
+void cpp_file::times2(float* input, float* output,float* output2, int lenght, float offSet)  
 { 
   //auto start = boost::chrono::high_resolution_clock::now();
 
@@ -48,15 +52,37 @@ void cpp_file::times2(float* input, float* output, int lenght)
   {
 	  if(i->is_bisector())
 	  {
-		float x1 = i->opposite()->vertex()->point().x();
-		float y1 = i->opposite()->vertex()->point().y();
-		float x2 = i->vertex()->point().x();
-		float y2 = i->vertex()->point().y();
-	    output[count++] = x1;
-		output[count++] = y1;
-		output[count++] = x2;
-		output[count++] = y2;
+		output[count++] = i->opposite()->vertex()->point().x();
+		output[count++] = i->opposite()->vertex()->point().y();
+		output[count++] = i->vertex()->point().x();
+		output[count++] = i->vertex()->point().y();
 	  }
+  }
+
+   
+  double lOffset = offSet;
+  int currentPolyCount = 0;
+  count = 0;
+
+  PolygonPtrVector offset_polygons = CGAL::create_offset_polygons_2<Polygon_2>(lOffset,*iss);
+
+  for( PolygonVector::const_iterator pi = offset_polygons.begin() ; pi != offset_polygons.end() ; ++ pi )
+  {
+	typedef CGAL::Polygon_2<K> Polygon ;
+	CGAL::Polygon_2<K> const& polyOffset = **pi;
+	for( Polygon::Vertex_const_iterator vi = polyOffset.vertices_begin() ; vi != polyOffset.vertices_end() ; ++ vi )
+	{
+		output2[count++] = vi->x();
+		output2[count++] = vi->y();
+		if(count > 2+currentPolyCount)
+		{
+			output2[count++] = output2[count-2];
+			output2[count++] = output2[count-2];
+		}
+	}  
+	output2[count++] = output2[currentPolyCount];
+	output2[count++] = output2[currentPolyCount+1];
+	currentPolyCount = count;
   }
   //auto end = boost::chrono::high_resolution_clock::now();
   //auto elapsed = boost::chrono::duration_cast<boost::chrono::milliseconds>(end - start);

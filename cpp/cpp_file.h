@@ -13,5 +13,5 @@ public:
     cpp_file(void);
     ~cpp_file(void);
 
-    void times2(float* input, float* output, int lenght);
+    void times2(float* input, float* output,float* output2, int lenght, float offSet);
 };

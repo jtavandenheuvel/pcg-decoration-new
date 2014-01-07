@@ -43,8 +43,8 @@ public class cpp_file : IDisposable {
   public cpp_file() : this(cppPINVOKE.new_cpp_file(), true) {
   }
 
-  public void times2(float[] input, float[] output, int lenght) {
-    cppPINVOKE.cpp_file_times2(swigCPtr, input, output, lenght);
+  public void times2(float[] input, float[] output, float[] output2, int lenght, float offSet) {
+    cppPINVOKE.cpp_file_times2(swigCPtr, input, output, output2, lenght, offSet);
   }
 
 }

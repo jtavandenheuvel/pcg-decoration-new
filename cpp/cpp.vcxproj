@@ -99,6 +99,8 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\swigwin-2.0.9\swig -csharp -c++ -outdir ..\WindowsGame1\WindowsGame1\GeneratedFiles cpp_file.i</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cpp_file_wrap.cxx</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\swigwin-2.0.9\swig -csharp -c++ -outdir ..\WindowsGame1\WindowsGame1\GeneratedFiles cpp_file.i</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cpp_file_wrap.cxx</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -92,14 +92,14 @@ namespace WindowsGame1.Utilities
                     List<Point2D> subdivisions = LineTools.getSubdividedLine(ref vec1, ref vec2, segmentSize);
 
                     //add them to the existing vertices
-                    for (int j = 1; j < subdivisions.Count - 1; j++)
+                    for (int j = 0; j < subdivisions.Count - 1; j++)
                     {
                         subdivisionPoints.Add(subdivisions[j]);
                     }
                     result.AddRange(subdivisions);
                 }
             }
-            this.Vertices = SimplifyTools.MergeIdenticalNeighborPoints(result);
+            this.Vertices = result;// SimplifyTools.MergeIdenticalNeighborPoints(result);
         }
 
         private void updateSegmentTypes()
