@@ -269,7 +269,7 @@ namespace WindowsGame1
             }
 
             // Adding points when holding click
-            if (_gui.drawToggleButton.IsToggled && !_gui.polyToggleButton.IsToggled
+            if (_gui.drawToggleButton.IsToggled
                 && this.IsActive
                 && !_gui.comboBox.IsPressed
                 && mouseState.LeftButton == ButtonState.Pressed
@@ -287,7 +287,7 @@ namespace WindowsGame1
                 {
                     Point2D point = new Point2D(mouseState.X, mouseState.Y);
                     polygon.ControlVertices.Holes[0][polygon.ControlVertices.Holes[0].Count - 1] = point;
-                    controlPoints[polygon.ControlVertices.Holes[0].Count - 1] = DrawTools.createDrawableRectangle(point);
+                    controlPointsHoles[polygon.ControlVertices.Holes[0].Count - 1] = DrawTools.createDrawableRectangle(point);
                 }
             }
 
@@ -442,7 +442,7 @@ namespace WindowsGame1
             }
             for (int i = 0; i < controlPointsHoles.Count; i++)
             {
-                if (draggingPoints.Contains(i))
+                if (draggingHolePoints.Contains(i))
                 {
                     spriteBatch.Draw(dummyTexture, controlPointsHoles[i], Color.Black);
                 }
