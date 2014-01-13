@@ -382,6 +382,17 @@ namespace FarseerPhysics.Common
             }
         }
 
+        public void ForceClockWiseHole()
+        {
+            if (Count < 3)
+                return;
+
+            if (IsCounterClockWise())
+            {
+                Reverse();
+            }
+        }
+
         /// <summary>
         /// Checks if the vertices forms an simple polygon by checking for edge crossings.
         /// </summary>

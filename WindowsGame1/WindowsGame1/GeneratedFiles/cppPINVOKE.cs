@@ -195,5 +195,5 @@ class cppPINVOKE {
   public static extern void delete_cpp_file(HandleRef jarg1);
 
   [DllImport("cpp", EntryPoint="CSharp_cpp_file_times2")]
-  public static extern void cpp_file_times2(HandleRef jarg1, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg2, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg3, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg4, int jarg5, float jarg6);
+  public static extern void cpp_file_times2(HandleRef jarg1, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg2, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg3, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg4, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg5, int jarg6, int jarg7, float jarg8);
 }

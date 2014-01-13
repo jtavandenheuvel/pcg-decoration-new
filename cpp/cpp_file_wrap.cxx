@@ -305,21 +305,27 @@ SWIGEXPORT void SWIGSTDCALL CSharp_delete_cpp_file(void * jarg1) {
 }
 
 
-SWIGEXPORT void SWIGSTDCALL CSharp_cpp_file_times2(void * jarg1, float* jarg2, float* jarg3, float* jarg4, int jarg5, float jarg6) {
+SWIGEXPORT void SWIGSTDCALL CSharp_cpp_file_times2(void * jarg1, float* jarg2, float* jarg3, float* jarg4, float* jarg5, int jarg6, int jarg7, float jarg8) {
   cpp_file *arg1 = (cpp_file *) 0 ;
   float *arg2 = (float *) 0 ;
   float *arg3 = (float *) 0 ;
   float *arg4 = (float *) 0 ;
-  int arg5 ;
-  float arg6 ;
+  float *arg5 = (float *) 0 ;
+  int arg6 ;
+  int arg7 ;
+  float arg8 ;
   
   arg1 = (cpp_file *)jarg1; 
   arg2 = jarg2;
   arg3 = jarg3;
   arg4 = jarg4;
-  arg5 = (int)jarg5; 
-  arg6 = (float)jarg6; 
-  (arg1)->times2(arg2,arg3,arg4,arg5,arg6);
+  arg5 = jarg5;
+  arg6 = (int)jarg6; 
+  arg7 = (int)jarg7; 
+  arg8 = (float)jarg8; 
+  (arg1)->times2(arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+  
+  
   
   
   

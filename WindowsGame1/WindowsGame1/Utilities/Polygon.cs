@@ -35,10 +35,20 @@ namespace WindowsGame1.Utilities
 
             ControlVertices.ForceCounterClockWise(game);
             Vertices = new Vertices(ControlVertices);
+            updateHoles(game);
             updateIntersectionPoints();
             updatePointLinks();
             updateSegmentTypes();
             updateSubdivisionPoints(game._gui.getSubdivideSize());
+        }
+
+        private void updateHoles(Game1 game)
+        {
+            ControlVertices.Holes[0] = new Vertices();
+            foreach (Rectangle point in game.controlPointsHoles)
+            {
+                ControlVertices.Holes[0].Add(new Point2D(point.X + point.Width/2, point.Y + point.Height/2));
+            }
         }
 
 
@@ -47,6 +57,7 @@ namespace WindowsGame1.Utilities
             resetDrawn();
             //drawRoundLines(game);
             drawPolygonLines(game);
+            drawHoles(game);
             //drawVerticesNumbers(game);
         }
 
@@ -263,15 +274,33 @@ namespace WindowsGame1.Utilities
                 else
                     color = Color.Black;
                 //Get vertices from polygon 
-                var vertices = this.getVertexPositionColor(color, drawStyle, game);
+                var vertices = this.getVertexPositionColor(Vertices, color, drawStyle, game, this.isClosed());
                 game.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.LineList, vertices, 0, vertices.Count() / 2);
             }
         }
 
-        public VertexPositionColor[] getVertexPositionColor(Color color, Settings.DrawStyle drawStyle, Game1 game)
+
+
+        private void drawHoles(Game1 game)
         {
-            int count = Vertices.Count - (isClosed() ? 0 : 1);
-            if (drawStyle != Settings.DrawStyle.None && drawStyle != Settings.DrawStyle.Color)
+            int totalLinesToDraw = ControlVertices.Holes[0].Count;
+            if (totalLinesToDraw > 0)
+            {
+
+                game.basicEffect.CurrentTechnique.Passes[0].Apply();
+
+                Color color = Color.Green;
+                
+                //Get vertices from polygon 
+                var vertices = this.getVertexPositionColor(ControlVertices.Holes[0], color, Settings.DrawStyle.None, game, true);
+                game.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.LineList, vertices, 0, vertices.Count() / 2);
+            }
+        }
+
+        public VertexPositionColor[] getVertexPositionColor(Vertices verticeIn, Color color, Settings.DrawStyle drawStyle, Game1 game, bool closed)
+        {
+            int count = verticeIn.Count - (closed ? 0 : 1);
+            if (drawStyle != Settings.DrawStyle.Color)
             {
                 count++;
             }
@@ -298,9 +327,9 @@ namespace WindowsGame1.Utilities
 
             for (int i = 0; i < count-1; i++)
             {
-                Point2D current = Vertices[i];
-                Point2D previous = Vertices.PreviousVertex(i);
-                Point2D next = Vertices.NextVertex(i);
+                Point2D current = verticeIn[i];
+                Point2D previous = verticeIn.PreviousVertex(i);
+                Point2D next = verticeIn.NextVertex(i);
 
                 if (style != null && !current.drawn)
                 {

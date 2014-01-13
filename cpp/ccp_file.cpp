@@ -6,8 +6,8 @@
 #include<boost/shared_ptr.hpp>
 
 #include<CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include<CGAL/Polygon_2.h>
-#include<CGAL/create_straight_skeleton_2.h>
+#include<CGAL/Polygon_with_holes_2.h>
+#include<CGAL/create_straight_skeleton_from_polygon_with_holes_2.h>
 #include<CGAL/create_offset_polygons_2.h>
 
 #include "print.h"
@@ -16,6 +16,7 @@
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K ;
 typedef K::Point_2                   Point ;
 typedef CGAL::Polygon_2<K>           Polygon_2 ;
+typedef CGAL::Polygon_with_holes_2<K> Polygon_with_holes ;
 typedef boost::shared_ptr<Polygon_2> PolygonPtr ;
 typedef CGAL::Straight_skeleton_2<K> Ss ;
 typedef boost::shared_ptr<Ss> SsPtr ;
@@ -30,17 +31,32 @@ cpp_file::~cpp_file(void)
 {  
 }  
   
-void cpp_file::times2(float* input, float* output,float* output2, int lenght, float offSet)  
+//input = polygon
+//input2 = holes
+//output = SS
+//output2 = offset
+void cpp_file::times2(float* input, float* input2, float* output,float* output2, int length, int length2, float offSet)  
 { 
   //auto start = boost::chrono::high_resolution_clock::now();
 
-  Polygon_2 poly ;
-  for (int n=0; n < lenght; n=n+2) {
-	  poly.push_back( Point(input[n],input[n+1]) ) ;
+  Polygon_2 outer ;
+  for (int n=0; n < length; n=n+2) {
+	  outer.push_back( Point(input[n],input[n+1]) ) ;
   }
 
+  Polygon_2 hole ;
+  for (int n=0; n < length2; n=n+2) {
+	  hole.push_back( Point(input2[n],input2[n+1]) ) ;
+  }
+    
+  Polygon_with_holes poly( outer ) ;
+  
+  poly.add_hole( hole ) ;
+
+
+
   // Calculate straight skeleton
-  SsPtr iss = CGAL::create_interior_straight_skeleton_2(poly.vertices_begin(), poly.vertices_end());
+  SsPtr iss = CGAL::create_interior_straight_skeleton_2(poly);
 
   // Set data in output array
   typedef CGAL::Straight_skeleton_2<K> Ss ;

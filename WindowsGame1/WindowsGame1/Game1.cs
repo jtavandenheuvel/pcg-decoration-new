@@ -31,8 +31,8 @@ namespace WindowsGame1
         public BasicEffect basicEffect;
         private MouseState mouseState, previousMouseState;
         public Texture2D dummyTexture;
-        public List<int> draggingPoints;
-        public List<Rectangle> subdividePoints, intersectionPoints, controlPoints;
+        public List<int> draggingPoints, draggingHolePoints;
+        public List<Rectangle> subdividePoints, intersectionPoints, controlPoints, controlPointsHoles;
         public Random random;
         private Vertices intersectionVertices;
         public MyGUI _gui;
@@ -73,10 +73,12 @@ namespace WindowsGame1
 
             // Create empty points list to save points to 
             draggingPoints = new List<int>();
+            draggingHolePoints = new List<int>();
             subdividePoints = new List<Rectangle>();
             intersectionPoints = new List<Rectangle>();
             controlPoints = new List<Rectangle>();
-            
+            controlPointsHoles = new List<Rectangle>();
+
             intersectionVertices = new Vertices();
             polygon = new Polygon(new Vertices(), true);
 
@@ -107,11 +109,24 @@ namespace WindowsGame1
             list.Add(new Point2D(200, 600));
             list.Add(new Point2D(100, 600));
 
+            List<Point2D> hole = new List<Point2D>();
+            hole.Add(new Point2D(150, 250));
+            hole.Add(new Point2D(200, 250));
+            hole.Add(new Point2D(200, 300));
+            hole.Add(new Point2D(150, 300));
             
             foreach (Point2D point in list)
             {
                 polygon.ControlVertices.Add(point);
                 controlPoints.Add(DrawTools.createDrawableRectangle(point));
+            }
+            polygon.ControlVertices.Holes = new List<Vertices>();
+            polygon.ControlVertices.Holes.Add(new Vertices());
+
+            foreach (Point2D point in hole)
+            {
+                polygon.ControlVertices.Holes[0].Add(point);
+                controlPointsHoles.Add(DrawTools.createDrawableRectangle(point));
             }
         }
 
@@ -178,8 +193,19 @@ namespace WindowsGame1
                     points[i] = polygon.ControlVertices[j].X;
                     points[i+1] = polygon.ControlVertices[j].Y;
                 }
+
+
+                polygon.ControlVertices.Holes[0].ForceClockWiseHole();
+
+                float[] holes = new float[polygon.ControlVertices.Holes[0].Count * 2];
+                for (int i = 0, j = 0; i < polygon.ControlVertices.Holes[0].Count * 2; j++, i = i + 2)
+                {
+                    holes[i] = polygon.ControlVertices.Holes[0][j].X;
+                    holes[i + 1] = polygon.ControlVertices.Holes[0][j].Y;
+                }
             
-                cpp.times2(points, output, output2, points.Length, _gui.getSubdivideSize());
+                
+                cpp.times2(points, holes, output, output2, points.Length, holes.Length, _gui.getSubdivideSize());
             }
             
 
@@ -227,14 +253,23 @@ namespace WindowsGame1
                 && mouseState.X >= 0 && mouseState.X < graphics.PreferredBackBufferWidth
                 && mouseState.Y >= 40 && mouseState.Y < graphics.PreferredBackBufferHeight)
             {
-                Point2D point = new Point2D(mouseState.X, mouseState.Y);
-                polygon.ControlVertices.Add(point);
-                controlPoints.Add(DrawTools.createDrawableRectangle(point));
+                if (!_gui.polyToggleButton.IsToggled)
+                {
+                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    polygon.ControlVertices.Add(point);
+                    controlPoints.Add(DrawTools.createDrawableRectangle(point));
+                }
+                else
+                {
+                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    polygon.ControlVertices.Holes[0].Add(point);
+                    controlPointsHoles.Add(DrawTools.createDrawableRectangle(point));
+                }
 
             }
 
             // Adding points when holding click
-            if (_gui.drawToggleButton.IsToggled
+            if (_gui.drawToggleButton.IsToggled && !_gui.polyToggleButton.IsToggled
                 && this.IsActive
                 && !_gui.comboBox.IsPressed
                 && mouseState.LeftButton == ButtonState.Pressed
@@ -242,13 +277,22 @@ namespace WindowsGame1
                 && mouseState.X >= 0 && mouseState.X < graphics.PreferredBackBufferWidth
                 && mouseState.Y >= 40 && mouseState.Y < graphics.PreferredBackBufferHeight)
             {
-                Point2D point = new Point2D(mouseState.X, mouseState.Y);
-                polygon.ControlVertices[polygon.ControlVertices.Count-1] = point;
-                controlPoints[polygon.ControlVertices.Count-1] = DrawTools.createDrawableRectangle(point);
+                if (!_gui.polyToggleButton.IsToggled)
+                {
+                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    polygon.ControlVertices[polygon.ControlVertices.Count - 1] = point;
+                    controlPoints[polygon.ControlVertices.Count - 1] = DrawTools.createDrawableRectangle(point);
+                }
+                else
+                {
+                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    polygon.ControlVertices.Holes[0][polygon.ControlVertices.Holes[0].Count - 1] = point;
+                    controlPoints[polygon.ControlVertices.Holes[0].Count - 1] = DrawTools.createDrawableRectangle(point);
+                }
             }
 
             // Check if start dragging point 
-            if (_gui.movingToggleButton.IsToggled
+            if (!_gui.drawToggleButton.IsToggled
                 && this.IsActive
                 && mouseState.LeftButton == ButtonState.Pressed
                 && previousMouseState.LeftButton == ButtonState.Released
@@ -262,10 +306,17 @@ namespace WindowsGame1
                         draggingPoints.Add(i);
                     }
                 }
+                for (int i = 0; i < controlPointsHoles.Count; i++)
+                {
+                    if (controlPointsHoles[i].Contains(new Point(mouseState.X, mouseState.Y)))
+                    {
+                        draggingHolePoints.Add(i);
+                    }
+                }
             }
 
             // Dragging Points 
-            if (_gui.movingToggleButton.IsToggled
+            if (!_gui.drawToggleButton.IsToggled
                 && this.IsActive
                 && mouseState.LeftButton == ButtonState.Pressed
                 && previousMouseState.LeftButton == ButtonState.Pressed
@@ -284,15 +335,28 @@ namespace WindowsGame1
                     rectangle.Y = mouseState.Y - (rectangle.Height / 2);
                     controlPoints[draggingPoints[i]] = rectangle;
                 }
+                for (int i = 0; i < draggingHolePoints.Count; i++)
+                {
+                    Point2D point = polygon.ControlVertices.Holes[0][draggingHolePoints[i]];
+                    point.X = mouseState.X;
+                    point.Y = mouseState.Y;
+                    polygon.ControlVertices.Holes[0][draggingHolePoints[i]] = point;
+
+                    Rectangle rectangle = controlPointsHoles[draggingHolePoints[i]];
+                    rectangle.X = mouseState.X - (rectangle.Width / 2);
+                    rectangle.Y = mouseState.Y - (rectangle.Height / 2);
+                    controlPointsHoles[draggingHolePoints[i]] = rectangle;
+                }
             }
 
             // Clear Dragging List if left Button is released
-            if (_gui.movingToggleButton.IsToggled
+            if (!_gui.drawToggleButton.IsToggled 
                 && this.IsActive
                 && mouseState.LeftButton == ButtonState.Released
                 && previousMouseState.LeftButton == ButtonState.Pressed)
             {
                 draggingPoints.Clear();
+                draggingHolePoints.Clear();
             }
         }
 
@@ -376,6 +440,17 @@ namespace WindowsGame1
                     spriteBatch.Draw(dummyTexture, controlPoints[i], Color.Red);
                 }
             }
+            for (int i = 0; i < controlPointsHoles.Count; i++)
+            {
+                if (draggingPoints.Contains(i))
+                {
+                    spriteBatch.Draw(dummyTexture, controlPointsHoles[i], Color.Black);
+                }
+                else
+                {
+                    spriteBatch.Draw(dummyTexture, controlPointsHoles[i], Color.Gold);
+                }
+            }
         }
 
         private void drawDebugPoints()
@@ -398,6 +473,7 @@ namespace WindowsGame1
         public void resetDrawing()
         {
             controlPoints.Clear();
+            controlPointsHoles.Clear();
             polygon.Clear();
         }
     }

@@ -14,7 +14,7 @@ namespace WindowsGame1.GUIv2
         //constants
         private Game1 game;
         private Gui gui;
-        public ToggleButton drawToggleButton, movingToggleButton;
+        public ToggleButton drawToggleButton, polyToggleButton;
         public ComboBox comboBox;
         public SpriteFont greySpriteFont;
         public string greyMap;
@@ -73,15 +73,15 @@ namespace WindowsGame1.GUIv2
             sliderLabel2 = new Label(1150, 10, "1");
             slider2.Value = 0.3f;
 
-            drawToggleButton = new ToggleButton(220, 5, "Drawing Disabled", 5);
-            movingToggleButton = new ToggleButton(375, 5, "Moving Points Disabled", 5);
-            drawToggleButton.OnToggle += delegate { movingToggleButton.IsToggled = false; };
-            movingToggleButton.OnToggle += delegate { drawToggleButton.IsToggled = false; };
+            drawToggleButton = new ToggleButton(250, 5, "Moving Mode", 5);
+            polyToggleButton = new ToggleButton(375, 5, "Drawing Poly", 5);
+            //drawToggleButton.OnToggle += delegate { polyToggleButton.IsToggled = false; };
+            //polyToggleButton.OnToggle += delegate { drawToggleButton.IsToggled = false; };
 
 
             gui = new Gui(game, skin, text, testSkins, testTexts)
             {
-                Widgets = new Widget[] { exitButton, clearButton, drawToggleButton, movingToggleButton, comboBox, slider, sliderLabel, slider2, sliderLabel2 }
+                Widgets = new Widget[] { exitButton, clearButton, drawToggleButton, polyToggleButton, comboBox, slider, sliderLabel, slider2, sliderLabel2 }
             };
         }
 
@@ -130,8 +130,8 @@ namespace WindowsGame1.GUIv2
             game.spriteBatch.Draw(game.dummyTexture, menuBar, Color.LightSlateGray);
 
             //change text on toggle buttons if needed
-            drawToggleButton.Label = drawToggleButton.IsToggled ? "Drawing Enabled" : "Drawing Disabled";
-            movingToggleButton.Label = movingToggleButton.IsToggled ? "Moving Points Enabled" : "Moving Points Disabled";
+            drawToggleButton.Label = drawToggleButton.IsToggled ? "Drawing Mode" : "Moving Mode";
+            polyToggleButton.Label = polyToggleButton.IsToggled ? "Drawing Holes" : "Drawing Poly";
             game.spriteBatch.End();
             gui.Draw();
             game.spriteBatch.Begin();
