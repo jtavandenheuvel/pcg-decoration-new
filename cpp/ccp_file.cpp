@@ -35,7 +35,15 @@ cpp_file::~cpp_file(void)
 //input2 = holes
 //output = SS
 //output2 = offset
-void cpp_file::times2(float* input, float* input2, float* output,float* output2, int length, int length2, float offSet)  
+void cpp_file::SSAwithoutHoles(float* input, int length, float* output,float* output2, float offSet)  
+{ 
+	SSAwithHoles(input, length, input, 0, 0, output, output2, offSet);
+}
+//input = polygon
+//input2 = holes
+//output = SS
+//output2 = offset
+void cpp_file::SSAwithHoles(float* input,int length,float* input2, int* length2, int totalHoles, float* output, float* output2, float offSet)  
 { 
   //auto start = boost::chrono::high_resolution_clock::now();
 
@@ -43,17 +51,17 @@ void cpp_file::times2(float* input, float* input2, float* output,float* output2,
   for (int n=0; n < length; n=n+2) {
 	  outer.push_back( Point(input[n],input[n+1]) ) ;
   }
-
-  Polygon_2 hole ;
-  for (int n=0; n < length2; n=n+2) {
-	  hole.push_back( Point(input2[n],input2[n+1]) ) ;
-  }
-    
   Polygon_with_holes poly( outer ) ;
-  
-  poly.add_hole( hole ) ;
 
-
+  int n = 0;
+  for(int i = 0; i < totalHoles; i++){
+	Polygon_2 hole ;
+	
+	for (int x = 0; x < length2[i]; x++, n=n+2) {
+	  hole.push_back( Point(input2[n],input2[n+1]) ) ;
+	}
+	poly.add_hole( hole ) ;
+  }
 
   // Calculate straight skeleton
   SsPtr iss = CGAL::create_interior_straight_skeleton_2(poly);

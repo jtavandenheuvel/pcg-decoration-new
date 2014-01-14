@@ -43,8 +43,12 @@ public class cpp_file : IDisposable {
   public cpp_file() : this(cppPINVOKE.new_cpp_file(), true) {
   }
 
-  public void times2(float[] input, float[] input2, float[] output, float[] output2, int length, int length2, float offSet) {
-    cppPINVOKE.cpp_file_times2(swigCPtr, input, input2, output, output2, length, length2, offSet);
+  public void SSAwithoutHoles(float[] input, int length, float[] output, float[] output2, float offSet) {
+    cppPINVOKE.cpp_file_SSAwithoutHoles(swigCPtr, input, length, output, output2, offSet);
+  }
+
+  public void SSAwithHoles(float[] input, int length, float[] input2, int[] length2, int totalHoles, float[] output, float[] output2, float offSet) {
+    cppPINVOKE.cpp_file_SSAwithHoles(swigCPtr, input, length, input2, length2, totalHoles, output, output2, offSet);
   }
 
 }

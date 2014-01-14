@@ -13,5 +13,6 @@ public:
     cpp_file(void);
     ~cpp_file(void);
 
-    void times2(float* input, float* input2, float* output,float* output2, int length, int length2, float offSet);
+	void SSAwithoutHoles(float* input,int length, float* output,float* output2,  float offSet);
+    void SSAwithHoles(float* input,int length, float* input2, int* length2, int totalHoles, float* output,float* output2,   float offSet);
 };

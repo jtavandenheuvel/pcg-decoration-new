@@ -194,6 +194,9 @@ class cppPINVOKE {
   [DllImport("cpp", EntryPoint="CSharp_delete_cpp_file")]
   public static extern void delete_cpp_file(HandleRef jarg1);
 
-  [DllImport("cpp", EntryPoint="CSharp_cpp_file_times2")]
-  public static extern void cpp_file_times2(HandleRef jarg1, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg2, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg3, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg4, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg5, int jarg6, int jarg7, float jarg8);
+  [DllImport("cpp", EntryPoint="CSharp_cpp_file_SSAwithoutHoles")]
+  public static extern void cpp_file_SSAwithoutHoles(HandleRef jarg1, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg2, int jarg3, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg4, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg5, float jarg6);
+
+  [DllImport("cpp", EntryPoint="CSharp_cpp_file_SSAwithHoles")]
+  public static extern void cpp_file_SSAwithHoles(HandleRef jarg1, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg2, int jarg3, [In, MarshalAs(UnmanagedType.LPArray)]float[] jarg4, [In, MarshalAs(UnmanagedType.LPArray)]int[] jarg5, int jarg6, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg7, [Out, MarshalAs(UnmanagedType.LPArray)]float[] jarg8, float jarg9);
 }

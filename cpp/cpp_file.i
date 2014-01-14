@@ -12,4 +12,5 @@
 %apply float INPUT[]  {float* input2}
 %apply float OUTPUT[]  {float* output}
 %apply float OUTPUT[]  {float* output2}
+%apply int INPUT[] {int* length2}
 %include "cpp_file.h"  

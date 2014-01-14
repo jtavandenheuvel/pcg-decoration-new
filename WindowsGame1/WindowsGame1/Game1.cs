@@ -32,13 +32,16 @@ namespace WindowsGame1
         private MouseState mouseState, previousMouseState;
         public Texture2D dummyTexture;
         public List<int> draggingPoints, draggingHolePoints;
-        public List<Rectangle> subdividePoints, intersectionPoints, controlPoints, controlPointsHoles;
+        public List<Rectangle> subdividePoints, intersectionPoints, controlPoints;
+        public List<List<Rectangle>> controlPointsHoles;
+        public int currentSelectedHole;
         public Random random;
         private Vertices intersectionVertices;
         public MyGUI _gui;
         private Polygon polygon;
         private FpsCounterComponent fps;
         private cpp_file cpp = new cpp_file();
+
           
  
         // straight skeleton test
@@ -77,7 +80,7 @@ namespace WindowsGame1
             subdividePoints = new List<Rectangle>();
             intersectionPoints = new List<Rectangle>();
             controlPoints = new List<Rectangle>();
-            controlPointsHoles = new List<Rectangle>();
+            controlPointsHoles = new List<List<Rectangle>>();
 
             intersectionVertices = new Vertices();
             polygon = new Polygon(new Vertices(), true);
@@ -98,7 +101,7 @@ namespace WindowsGame1
             //initial shape to be shown for "playing" rectangle test
             List<Point2D> list = new List<Point2D>();
             list.Add(new Point2D(100, 200));
-            list.Add(new Point2D(410, 210));
+            list.Add(new Point2D(400, 200));
             list.Add(new Point2D(400, 600));
             list.Add(new Point2D(300, 600));
             list.Add(new Point2D(300, 500));
@@ -114,7 +117,15 @@ namespace WindowsGame1
             hole.Add(new Point2D(200, 250));
             hole.Add(new Point2D(200, 300));
             hole.Add(new Point2D(150, 300));
-            
+
+            List<Point2D> hole2 = new List<Point2D>();
+            hole2.Add(new Point2D(260, 260));
+            hole2.Add(new Point2D(310, 260));
+            hole2.Add(new Point2D(310, 310));
+            hole2.Add(new Point2D(260, 310));
+
+            currentSelectedHole = 0;
+
             foreach (Point2D point in list)
             {
                 polygon.ControlVertices.Add(point);
@@ -122,11 +133,20 @@ namespace WindowsGame1
             }
             polygon.ControlVertices.Holes = new List<Vertices>();
             polygon.ControlVertices.Holes.Add(new Vertices());
+            polygon.ControlVertices.Holes.Add(new Vertices());
+
+            controlPointsHoles.Add(new List<Rectangle>());
+            controlPointsHoles.Add(new List<Rectangle>());
 
             foreach (Point2D point in hole)
             {
                 polygon.ControlVertices.Holes[0].Add(point);
-                controlPointsHoles.Add(DrawTools.createDrawableRectangle(point));
+                controlPointsHoles[0].Add(DrawTools.createDrawableRectangle(point));
+            }
+            foreach (Point2D point in hole2)
+            {
+                polygon.ControlVertices.Holes[1].Add(point);
+                controlPointsHoles[1].Add(DrawTools.createDrawableRectangle(point));
             }
         }
 
@@ -194,18 +214,37 @@ namespace WindowsGame1
                     points[i+1] = polygon.ControlVertices[j].Y;
                 }
 
-
-                polygon.ControlVertices.Holes[0].ForceClockWiseHole();
-
-                float[] holes = new float[polygon.ControlVertices.Holes[0].Count * 2];
-                for (int i = 0, j = 0; i < polygon.ControlVertices.Holes[0].Count * 2; j++, i = i + 2)
+                if (polygon.ControlVertices.Holes.Count > 0)
                 {
-                    holes[i] = polygon.ControlVertices.Holes[0][j].X;
-                    holes[i + 1] = polygon.ControlVertices.Holes[0][j].Y;
+                    int i = 0;
+                    int totalSpaceNeeded = 0;
+                    foreach (Vertices hole in polygon.ControlVertices.Holes)
+                    {
+                        hole.ForceClockWiseHole();
+                        totalSpaceNeeded += hole.Count * 2;
+                    }
+
+                    float[] holes = new float[totalSpaceNeeded];
+                    int[] holeEnds = new int[polygon.ControlVertices.Holes.Count];
+
+                    int x = 0;
+                    foreach (Vertices hole in polygon.ControlVertices.Holes)
+                    {
+                        for (int j = 0; j < hole.Count; j++, i = i + 2)
+                        {
+                            holes[i] = hole[j].X;
+                            holes[i + 1] = hole[j].Y;
+                        }
+                        holeEnds[x++] = hole.Count;
+                    }
+
+
+                    cpp.SSAwithHoles(points,points.Length, holes, holeEnds, holeEnds.Length, output, output2, _gui.getSubdivideSize());
                 }
-            
-                
-                cpp.times2(points, holes, output, output2, points.Length, holes.Length, _gui.getSubdivideSize());
+                else
+                {
+                    cpp.SSAwithoutHoles(points, points.Length, output, output2, _gui.getSubdivideSize());
+                }
             }
             
 
@@ -261,9 +300,19 @@ namespace WindowsGame1
                 }
                 else
                 {
+                    if (_gui.newHoleToggleButton.IsToggled || polygon.ControlVertices.Holes.Count == 0)
+                    {
+                        controlPointsHoles.Add(new List<Rectangle>());
+                        polygon.ControlVertices.Holes.Add(new Vertices());
+
+                        currentSelectedHole = controlPointsHoles.Count - 1;
+
+                        _gui.newHoleToggleButton.IsToggled = false;
+                    }
                     Point2D point = new Point2D(mouseState.X, mouseState.Y);
-                    polygon.ControlVertices.Holes[0].Add(point);
-                    controlPointsHoles.Add(DrawTools.createDrawableRectangle(point));
+                    polygon.ControlVertices.Holes[currentSelectedHole].Add(point);
+                    controlPointsHoles[currentSelectedHole].Add(DrawTools.createDrawableRectangle(point));
+
                 }
 
             }
@@ -286,8 +335,8 @@ namespace WindowsGame1
                 else
                 {
                     Point2D point = new Point2D(mouseState.X, mouseState.Y);
-                    polygon.ControlVertices.Holes[0][polygon.ControlVertices.Holes[0].Count - 1] = point;
-                    controlPointsHoles[polygon.ControlVertices.Holes[0].Count - 1] = DrawTools.createDrawableRectangle(point);
+                    polygon.ControlVertices.Holes[currentSelectedHole][polygon.ControlVertices.Holes[currentSelectedHole].Count - 1] = point;
+                    controlPointsHoles[currentSelectedHole][polygon.ControlVertices.Holes[currentSelectedHole].Count - 1] = DrawTools.createDrawableRectangle(point);
                 }
             }
 
@@ -306,11 +355,15 @@ namespace WindowsGame1
                         draggingPoints.Add(i);
                     }
                 }
-                for (int i = 0; i < controlPointsHoles.Count; i++)
+                for (int x = 0; x < controlPointsHoles.Count; x++)
                 {
-                    if (controlPointsHoles[i].Contains(new Point(mouseState.X, mouseState.Y)))
+                    for (int i = 0; i < controlPointsHoles[x].Count; i++)
                     {
-                        draggingHolePoints.Add(i);
+                        if (controlPointsHoles[x][i].Contains(new Point(mouseState.X, mouseState.Y)))
+                        {
+                            currentSelectedHole = x;
+                            draggingHolePoints.Add(i);
+                        }
                     }
                 }
             }
@@ -337,15 +390,15 @@ namespace WindowsGame1
                 }
                 for (int i = 0; i < draggingHolePoints.Count; i++)
                 {
-                    Point2D point = polygon.ControlVertices.Holes[0][draggingHolePoints[i]];
+                    Point2D point = polygon.ControlVertices.Holes[currentSelectedHole][draggingHolePoints[i]];
                     point.X = mouseState.X;
                     point.Y = mouseState.Y;
-                    polygon.ControlVertices.Holes[0][draggingHolePoints[i]] = point;
+                    polygon.ControlVertices.Holes[currentSelectedHole][draggingHolePoints[i]] = point;
 
-                    Rectangle rectangle = controlPointsHoles[draggingHolePoints[i]];
+                    Rectangle rectangle = controlPointsHoles[currentSelectedHole][draggingHolePoints[i]];
                     rectangle.X = mouseState.X - (rectangle.Width / 2);
                     rectangle.Y = mouseState.Y - (rectangle.Height / 2);
-                    controlPointsHoles[draggingHolePoints[i]] = rectangle;
+                    controlPointsHoles[currentSelectedHole][draggingHolePoints[i]] = rectangle;
                 }
             }
 
@@ -440,15 +493,22 @@ namespace WindowsGame1
                     spriteBatch.Draw(dummyTexture, controlPoints[i], Color.Red);
                 }
             }
-            for (int i = 0; i < controlPointsHoles.Count; i++)
+            for (int x = 0; x < controlPointsHoles.Count; x++ )
             {
-                if (draggingHolePoints.Contains(i))
+                for (int i = 0; i < controlPointsHoles[x].Count; i++)
                 {
-                    spriteBatch.Draw(dummyTexture, controlPointsHoles[i], Color.Black);
-                }
-                else
-                {
-                    spriteBatch.Draw(dummyTexture, controlPointsHoles[i], Color.Gold);
+                    if (draggingHolePoints.Contains(i))
+                    {
+                        spriteBatch.Draw(dummyTexture, controlPointsHoles[x][i], Color.Black);
+                    }
+                    else if (currentSelectedHole == x)
+                    {
+                        spriteBatch.Draw(dummyTexture, controlPointsHoles[x][i], Color.Gold);
+                    }
+                    else
+                    {
+                        spriteBatch.Draw(dummyTexture, controlPointsHoles[x][i], Color.Gray);
+                    }
                 }
             }
         }
@@ -473,8 +533,27 @@ namespace WindowsGame1
         public void resetDrawing()
         {
             controlPoints.Clear();
+            polygon.ControlVertices.Holes.Clear();
+            polygon.ControlVertices.Holes.Add(new Vertices());
             controlPointsHoles.Clear();
+            controlPointsHoles.Add(new List<Rectangle>());
+            currentSelectedHole = 0;
             polygon.Clear();
+        }
+
+        internal void removeSelectedHole()
+        {
+            controlPointsHoles.RemoveAt(currentSelectedHole);
+            if (controlPointsHoles.Count <= currentSelectedHole)
+            {
+                currentSelectedHole--;
+            }
+            if (currentSelectedHole < 0)
+            {
+                polygon.ControlVertices.Holes.Clear();
+                polygon.ControlVertices.Holes.Add(new Vertices());
+                currentSelectedHole = 0;
+            }
         }
     }
 }

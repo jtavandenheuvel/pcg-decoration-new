@@ -44,10 +44,14 @@ namespace WindowsGame1.Utilities
 
         private void updateHoles(Game1 game)
         {
-            ControlVertices.Holes[0] = new Vertices();
-            foreach (Rectangle point in game.controlPointsHoles)
+            ControlVertices.Holes = new List<Vertices>();
+            for(int i = 0; i < game.controlPointsHoles.Count; i++)
             {
-                ControlVertices.Holes[0].Add(new Point2D(point.X + point.Width/2, point.Y + point.Height/2));
+                ControlVertices.Holes.Add(new Vertices());
+                foreach (Rectangle point in game.controlPointsHoles[i])
+                {
+                    ControlVertices.Holes[i].Add(new Point2D(point.X + point.Width / 2, point.Y + point.Height / 2));
+                }
             }
         }
 
@@ -283,17 +287,20 @@ namespace WindowsGame1.Utilities
 
         private void drawHoles(Game1 game)
         {
-            int totalLinesToDraw = ControlVertices.Holes[0].Count;
-            if (totalLinesToDraw > 0)
+            for (int i = 0; i < ControlVertices.Holes.Count; i++)
             {
+                int totalLinesToDraw = ControlVertices.Holes[i].Count;
+                if (totalLinesToDraw > 0)
+                {
 
-                game.basicEffect.CurrentTechnique.Passes[0].Apply();
+                    game.basicEffect.CurrentTechnique.Passes[0].Apply();
 
-                Color color = Color.Green;
-                
-                //Get vertices from polygon 
-                var vertices = this.getVertexPositionColor(ControlVertices.Holes[0], color, Settings.DrawStyle.None, game, true);
-                game.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.LineList, vertices, 0, vertices.Count() / 2);
+                    Color color = Color.Green;
+
+                    //Get vertices from polygon 
+                    var vertices = this.getVertexPositionColor(ControlVertices.Holes[i], color, Settings.DrawStyle.None, game, true);
+                    game.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.LineList, vertices, 0, vertices.Count() / 2);
+                }
             }
         }
 
