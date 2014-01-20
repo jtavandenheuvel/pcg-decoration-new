@@ -32,8 +32,8 @@ namespace WindowsGame1
         private MouseState mouseState, previousMouseState;
         public Texture2D dummyTexture;
         public List<int> draggingPoints, draggingHolePoints;
-        public List<Rectangle> subdividePoints, intersectionPoints, controlPoints;
-        public List<List<Rectangle>> controlPointsHoles;
+        public List<Rectangle> subdividePoints, intersectionPoints, controlPoints, mirrorPoints;
+        public List<List<Rectangle>> controlPointsHoles, mirrorPointsHoles;
         public int currentSelectedHole;
         public Random random;
         private Vertices intersectionVertices;
@@ -41,12 +41,25 @@ namespace WindowsGame1
         private Polygon polygon;
         private FpsCounterComponent fps;
         private cpp_file cpp = new cpp_file();
-
+        private Texture2D texture1px;
+        private Texture2D textureTrans;
+        private int cols;
+        private int rows;
+        private int gridWidth;
+        private int gridHeight;
+        private int topLeftGridX;
+        private int topLeftGridY;
+        private int gridSize;
+        private KeyboardState keyboardState;
+        private KeyboardState previousKeyBoardState;
+        private bool snappingMode;
+        private bool mirrorMode;
           
  
         // straight skeleton test
         private float[] output = new float[5000];
         private float[] output2 = new float[5000];
+
 
         public Game1()
         {
@@ -80,17 +93,26 @@ namespace WindowsGame1
             subdividePoints = new List<Rectangle>();
             intersectionPoints = new List<Rectangle>();
             controlPoints = new List<Rectangle>();
+            mirrorPoints = new List<Rectangle>();
             controlPointsHoles = new List<List<Rectangle>>();
+            mirrorPointsHoles = new List<List<Rectangle>>();
 
             intersectionVertices = new Vertices();
             polygon = new Polygon(new Vertices(), true);
 
             //TEST SHAPE
-            loadTestShape();
+            //loadTestShape();
 
             // GUI
             _gui.Init();
             fps.Initialize();
+
+            //grid
+            gridSize = 28;
+            snappingMode = false;
+
+            //mirrormode
+            mirrorMode = false;
 
             // Load
             base.Initialize();
@@ -164,6 +186,10 @@ namespace WindowsGame1
             basicEffect = new BasicEffect(GraphicsDevice);
             basicEffect.VertexColorEnabled = true;
             basicEffect.Projection = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+
+            //Grid Textures
+            generateTextures();
+
         }
 
         /// <summary>
@@ -184,11 +210,16 @@ namespace WindowsGame1
         {
             //Update Controller States
             updateControllerStates();
+
+            //Grid update
+            updateGridInfo();
+
             //Handle the mouse inputs, clicks, drags, etc. 
             handleMouseInput();
-           
+            handleKeyBoardInput();
+
             //Update polygon (vertices / intersections)
-            polygon.update(this);
+            polygon.update(this, mirrorMode);
 
             //Calculate intersection points
             updateIntersectionPoints();
@@ -197,38 +228,68 @@ namespace WindowsGame1
             //Calculate points in between lines for subdivision
             updateSubdividePoints();
 
-
-
             //Calculate straight Skeleton 
+            updateSS();
+            
+
+
+            //Update the GUI
+            _gui.Update();
+            
+            base.Update(gameTime);
+        }
+
+        private void updateSS()
+        {
             output = new float[5000];
             output2 = new float[5000];
-            if (polygon.ControlVertices.IsSimple())
+
+            Vertices ssVertices = new Vertices();
+            ssVertices.Holes = polygon.ControlVertices.Holes;
+
+            foreach (Point2D point in polygon.ControlVertices)
             {
-                polygon.ControlVertices.ForceCounterClockWise();
-               
-                float[] points = new float[polygon.ControlVertices.Count * 2];
-            
-                for (int i = 0, j = 0; i < polygon.ControlVertices.Count*2; j++, i=i+2)
+                ssVertices.Add(point);
+            }
+            if (mirrorMode)
+            {
+                for (int x = polygon.MirrorVertices.Count - 1; x >= 0; x--)
                 {
-                    points[i] = polygon.ControlVertices[j].X;
-                    points[i+1] = polygon.ControlVertices[j].Y;
+                    ssVertices.Add(polygon.MirrorVertices[x]);
+                }
+                foreach (Vertices hole in polygon.MirrorVertices.Holes)
+                {
+                    ssVertices.Holes.Add(hole); 
+                }
+            }
+
+            if (ssVertices.IsSimple())
+            {
+                ssVertices.ForceCounterClockWise();
+
+                float[] points = new float[ssVertices.Count * 2];
+
+                for (int i = 0, j = 0; i < ssVertices.Count * 2; j++, i = i + 2)
+                {
+                    points[i] = ssVertices[j].X;
+                    points[i + 1] = ssVertices[j].Y;
                 }
 
-                if (polygon.ControlVertices.Holes.Count > 0)
+                if (ssVertices.Holes.Count > 0)
                 {
                     int i = 0;
                     int totalSpaceNeeded = 0;
-                    foreach (Vertices hole in polygon.ControlVertices.Holes)
+                    foreach (Vertices hole in ssVertices.Holes)
                     {
                         hole.ForceClockWiseHole();
                         totalSpaceNeeded += hole.Count * 2;
                     }
 
                     float[] holes = new float[totalSpaceNeeded];
-                    int[] holeEnds = new int[polygon.ControlVertices.Holes.Count];
+                    int[] holeEnds = new int[ssVertices.Holes.Count];
 
                     int x = 0;
-                    foreach (Vertices hole in polygon.ControlVertices.Holes)
+                    foreach (Vertices hole in ssVertices.Holes)
                     {
                         for (int j = 0; j < hole.Count; j++, i = i + 2)
                         {
@@ -239,20 +300,21 @@ namespace WindowsGame1
                     }
 
 
-                    cpp.SSAwithHoles(points,points.Length, holes, holeEnds, holeEnds.Length, output, output2, _gui.getSubdivideSize());
+                    cpp.SSAwithHoles(points, points.Length, holes, holeEnds, holeEnds.Length, output, output2, _gui.getSubdivideSize());
                 }
                 else
                 {
                     cpp.SSAwithoutHoles(points, points.Length, output, output2, _gui.getSubdivideSize());
                 }
             }
-            
+        }
 
-
-            //Update the GUI
-            _gui.Update();
-            
-            base.Update(gameTime);
+        private void handleKeyBoardInput()
+        {
+            if (keyboardState.IsKeyDown(Keys.S))
+            {
+                snappingMode = !snappingMode;
+            }
         }
 
         private void updateIntersectionPoints()
@@ -283,6 +345,24 @@ namespace WindowsGame1
 
         private void handleMouseInput()
         {
+            if (mouseState.MiddleButton == ButtonState.Pressed && previousMouseState.MiddleButton == ButtonState.Released)
+            {
+                mirrorMode = !mirrorMode;
+            }
+            if (mouseState.RightButton == ButtonState.Pressed && previousMouseState.RightButton == ButtonState.Released)
+            {
+                //enable/disablef snapping mode
+                snappingMode = !snappingMode;
+            }
+
+            int xCor = mouseState.X;
+            int yCor = mouseState.Y;
+            if (snappingMode)
+            {
+                xCor = ((int)(xCor / gridSize)) * gridSize + topLeftGridX;
+                yCor = ((int)(yCor / gridSize)-1) * gridSize + topLeftGridY;
+            }
+
             // Adding points when new click
             if (_gui.drawToggleButton.IsToggled
                 && this.IsActive
@@ -294,27 +374,34 @@ namespace WindowsGame1
             {
                 if (!_gui.polyToggleButton.IsToggled)
                 {
-                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    Point2D point = new Point2D(xCor, yCor);
                     polygon.ControlVertices.Add(point);
                     controlPoints.Add(DrawTools.createDrawableRectangle(point));
+                    Point2D mirrorPoint = new Point2D(graphics.PreferredBackBufferWidth - xCor, yCor);
+                    polygon.MirrorVertices.Add(mirrorPoint);
+                    mirrorPoints.Add(DrawTools.createDrawableRectangle(mirrorPoint));
                 }
                 else
                 {
                     if (_gui.newHoleToggleButton.IsToggled || polygon.ControlVertices.Holes.Count == 0)
                     {
                         controlPointsHoles.Add(new List<Rectangle>());
+                        mirrorPointsHoles.Add(new List<Rectangle>());
                         polygon.ControlVertices.Holes.Add(new Vertices());
+                        polygon.MirrorVertices.Holes.Add(new Vertices());
 
                         currentSelectedHole = controlPointsHoles.Count - 1;
 
                         _gui.newHoleToggleButton.IsToggled = false;
                     }
-                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    Point2D point = new Point2D(xCor, yCor);
                     polygon.ControlVertices.Holes[currentSelectedHole].Add(point);
                     controlPointsHoles[currentSelectedHole].Add(DrawTools.createDrawableRectangle(point));
 
+                    Point2D mirrorPoint = new Point2D(graphics.PreferredBackBufferWidth - xCor, yCor);
+                    polygon.MirrorVertices.Holes[currentSelectedHole].Add(mirrorPoint);
+                    mirrorPointsHoles[currentSelectedHole].Add(DrawTools.createDrawableRectangle(mirrorPoint));
                 }
-
             }
 
             // Adding points when holding click
@@ -328,15 +415,22 @@ namespace WindowsGame1
             {
                 if (!_gui.polyToggleButton.IsToggled)
                 {
-                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    Point2D point = new Point2D(xCor, yCor);
                     polygon.ControlVertices[polygon.ControlVertices.Count - 1] = point;
                     controlPoints[polygon.ControlVertices.Count - 1] = DrawTools.createDrawableRectangle(point);
+                    Point2D mirrorPoint = new Point2D(graphics.PreferredBackBufferWidth - xCor, yCor);
+                    polygon.MirrorVertices[polygon.MirrorVertices.Count-1] = mirrorPoint;
+                    mirrorPoints[polygon.MirrorVertices.Count - 1] = DrawTools.createDrawableRectangle(mirrorPoint);
                 }
                 else
                 {
-                    Point2D point = new Point2D(mouseState.X, mouseState.Y);
+                    Point2D point = new Point2D(xCor, yCor);
                     polygon.ControlVertices.Holes[currentSelectedHole][polygon.ControlVertices.Holes[currentSelectedHole].Count - 1] = point;
                     controlPointsHoles[currentSelectedHole][polygon.ControlVertices.Holes[currentSelectedHole].Count - 1] = DrawTools.createDrawableRectangle(point);
+
+                    Point2D mirrorPoint = new Point2D(graphics.PreferredBackBufferWidth - xCor, yCor);
+                    polygon.MirrorVertices.Holes[currentSelectedHole][polygon.MirrorVertices.Holes[currentSelectedHole].Count - 1] = mirrorPoint;
+                    mirrorPointsHoles[currentSelectedHole][polygon.MirrorVertices.Holes[currentSelectedHole].Count - 1] = DrawTools.createDrawableRectangle(mirrorPoint);
                 }
             }
 
@@ -379,26 +473,48 @@ namespace WindowsGame1
                 for (int i = 0; i < draggingPoints.Count; i++)
                 {
                     Point2D point = polygon.ControlVertices[draggingPoints[i]];
-                    point.X = mouseState.X;
-                    point.Y = mouseState.Y;
+                    point.X = xCor;
+                    point.Y = yCor;
                     polygon.ControlVertices[draggingPoints[i]] = point;
+
+                    Point2D mirrorPoint = polygon.MirrorVertices[draggingPoints[i]];
+                    mirrorPoint.X = graphics.PreferredBackBufferWidth - xCor;
+                    mirrorPoint.Y = yCor;
+                    polygon.MirrorVertices[draggingPoints[i]] = mirrorPoint;
+
                     
                     Rectangle rectangle = controlPoints[draggingPoints[i]];
-                    rectangle.X = mouseState.X - (rectangle.Width / 2);
-                    rectangle.Y = mouseState.Y - (rectangle.Height / 2);
+                    rectangle.X = xCor - (rectangle.Width / 2);
+                    rectangle.Y = yCor - (rectangle.Height / 2);
                     controlPoints[draggingPoints[i]] = rectangle;
+
+                    Rectangle mirrorRectangle = mirrorPoints[draggingPoints[i]];
+                    mirrorRectangle.X = graphics.PreferredBackBufferWidth - (xCor + (mirrorRectangle.Width / 2));
+                    mirrorRectangle.Y = yCor - (mirrorRectangle.Height / 2);
+                    mirrorPoints[draggingPoints[i]] = mirrorRectangle;
+                    
                 }
                 for (int i = 0; i < draggingHolePoints.Count; i++)
                 {
                     Point2D point = polygon.ControlVertices.Holes[currentSelectedHole][draggingHolePoints[i]];
-                    point.X = mouseState.X;
-                    point.Y = mouseState.Y;
+                    point.X = xCor;
+                    point.Y = yCor;
                     polygon.ControlVertices.Holes[currentSelectedHole][draggingHolePoints[i]] = point;
 
                     Rectangle rectangle = controlPointsHoles[currentSelectedHole][draggingHolePoints[i]];
-                    rectangle.X = mouseState.X - (rectangle.Width / 2);
-                    rectangle.Y = mouseState.Y - (rectangle.Height / 2);
+                    rectangle.X = xCor - (rectangle.Width / 2);
+                    rectangle.Y = yCor - (rectangle.Height / 2);
                     controlPointsHoles[currentSelectedHole][draggingHolePoints[i]] = rectangle;
+
+                    Point2D mirrorPoint = polygon.MirrorVertices.Holes[currentSelectedHole][draggingHolePoints[i]];
+                    mirrorPoint.X = xCor;
+                    mirrorPoint.Y = yCor;
+                    polygon.MirrorVertices.Holes[currentSelectedHole][draggingHolePoints[i]] = mirrorPoint;
+
+                    Rectangle mirrorRectangle = mirrorPointsHoles[currentSelectedHole][draggingHolePoints[i]];
+                    mirrorRectangle.X = graphics.PreferredBackBufferWidth - (xCor - (mirrorRectangle.Width / 2));
+                    mirrorRectangle.Y = yCor - (mirrorRectangle.Height / 2);
+                    mirrorPointsHoles[currentSelectedHole][draggingHolePoints[i]] = mirrorRectangle;
                 }
             }
 
@@ -431,6 +547,18 @@ namespace WindowsGame1
             GraphicsDevice.Clear(Color.White);
             this.spriteBatch.Begin();
 
+            //Draw Grid
+            if (snappingMode)
+            {
+                drawGridLines();
+            }
+
+            //Draw Mirror
+            if(mirrorMode)
+            {
+                drawMirrorOverlay();
+            }
+
             // Drawing debug rectangles 
             drawControlPoints();
             //drawDebugPoints();
@@ -452,6 +580,12 @@ namespace WindowsGame1
             drawFPS();
             this.spriteBatch.End();
 
+        }
+
+        private void drawMirrorOverlay()
+        {
+            Rectangle rect = new Rectangle((int)(cols / 2 * gridSize) + topLeftGridX, 0 + topLeftGridY, (int)(cols / 2 * gridSize), (int)(rows * gridSize));
+            spriteBatch.Draw(textureTrans, rect, Color.Gold);
         }
 
         private void drawSkeleton(float[] output, Color color)
@@ -491,6 +625,20 @@ namespace WindowsGame1
                 else
                 {
                     spriteBatch.Draw(dummyTexture, controlPoints[i], Color.Red);
+                }
+            }
+            if (mirrorMode)
+            {
+                for (int i = 0; i < mirrorPoints.Count; i++)
+                {
+                    spriteBatch.Draw(dummyTexture, mirrorPoints[i], Color.Cyan);
+                }
+                foreach (List<Rectangle> list in mirrorPointsHoles)
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        spriteBatch.Draw(dummyTexture, list[i], Color.Cyan);
+                    }
                 }
             }
             for (int x = 0; x < controlPointsHoles.Count; x++ )
@@ -533,10 +681,14 @@ namespace WindowsGame1
         public void resetDrawing()
         {
             controlPoints.Clear();
+            mirrorPoints.Clear();
+
             polygon.ControlVertices.Holes.Clear();
             polygon.ControlVertices.Holes.Add(new Vertices());
             controlPointsHoles.Clear();
             controlPointsHoles.Add(new List<Rectangle>());
+            mirrorPointsHoles.Clear();
+            mirrorPointsHoles.Add(new List<Rectangle>());
             currentSelectedHole = 0;
             polygon.Clear();
         }
@@ -544,6 +696,8 @@ namespace WindowsGame1
         internal void removeSelectedHole()
         {
             controlPointsHoles.RemoveAt(currentSelectedHole);
+            mirrorPointsHoles.RemoveAt(currentSelectedHole);
+
             if (controlPointsHoles.Count <= currentSelectedHole)
             {
                 currentSelectedHole--;
@@ -552,7 +706,47 @@ namespace WindowsGame1
             {
                 polygon.ControlVertices.Holes.Clear();
                 polygon.ControlVertices.Holes.Add(new Vertices());
+                polygon.MirrorVertices.Holes.Clear();
+                polygon.MirrorVertices.Holes.Add(new Vertices());
+
                 currentSelectedHole = 0;
+            }
+        }
+
+        private void generateTextures()
+        {
+            texture1px = new Texture2D(graphics.GraphicsDevice, 1, 1);
+            texture1px.SetData(new Color[] { Color.White });
+
+            Byte transparency_amount = 100; //0 transparent; 255 opaque
+            textureTrans = new Texture2D(graphics.GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
+            Color[] c = new Color[1];
+            c[0] = Color.FromNonPremultiplied(255, 255, 255, transparency_amount);
+            textureTrans.SetData<Color>(c);
+        }
+
+        private void updateGridInfo()
+        {
+            cols = (int)(this.graphics.PreferredBackBufferWidth / gridSize);
+            rows = (int)((this.graphics.PreferredBackBufferHeight - 40) / gridSize);
+            gridWidth = this.graphics.PreferredBackBufferWidth;
+            gridHeight = this.graphics.PreferredBackBufferHeight;
+
+            topLeftGridX = 0 + (int)((this.graphics.PreferredBackBufferWidth - (cols*gridSize))/2);
+            topLeftGridY = 40 + (int)((this.graphics.PreferredBackBufferHeight - 40 - (rows * gridSize)) / 2); ;
+        }
+
+        private void drawGridLines()
+        {
+            for (float x = 0; x < cols + 1; x++)
+            {
+                Rectangle rectangle = new Rectangle((int)(topLeftGridX + x * gridSize), topLeftGridY, 1, (int)(rows * gridSize));
+                spriteBatch.Draw(textureTrans, rectangle, Color.Black);
+            }
+            for (float y = 0; y < rows + 1; y++)
+            {
+                Rectangle rectangle = new Rectangle(topLeftGridX, (int)(topLeftGridY + y * gridSize), (int)(cols * gridSize), 1);
+                spriteBatch.Draw(textureTrans, rectangle, Color.Black);
             }
         }
     }

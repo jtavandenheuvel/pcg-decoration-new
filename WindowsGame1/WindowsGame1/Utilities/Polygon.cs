@@ -16,10 +16,11 @@ namespace WindowsGame1.Utilities
     {
         public Vertices Vertices {get; set;}
         public Vertices ControlVertices { get; set; }
+        public Vertices MirrorVertices { get; set; }
         private Vertices intersectionPoints, subdivisionPoints;
         public bool Closed;
         private StyleGenerator style;
-
+        private bool mirrorMode = false;
 
         public Polygon(Vertices v, bool closed)
         {
@@ -28,13 +29,26 @@ namespace WindowsGame1.Utilities
             intersectionPoints = new Vertices();
             subdivisionPoints = new Vertices();
             ControlVertices = new Vertices();
+            MirrorVertices = new Vertices();
         }
 
-        internal void update(Game1 game)
+        internal void update(Game1 game, bool mirrorMode)
         {
+
+            this.mirrorMode = mirrorMode;
 
             ControlVertices.ForceCounterClockWise(game);
             Vertices = new Vertices(ControlVertices);
+
+
+            if (this.mirrorMode)
+            {
+                for (int x = MirrorVertices.Count - 1; x >= 0; x--)
+                {
+                    Vertices.Add(MirrorVertices[x]);
+                }
+            }
+
             updateHoles(game);
             updateIntersectionPoints();
             updatePointLinks();
@@ -51,6 +65,16 @@ namespace WindowsGame1.Utilities
                 foreach (Rectangle point in game.controlPointsHoles[i])
                 {
                     ControlVertices.Holes[i].Add(new Point2D(point.X + point.Width / 2, point.Y + point.Height / 2));
+                }
+            }
+
+            MirrorVertices.Holes = new List<Vertices>();
+            for (int i = 0; i < game.mirrorPointsHoles.Count; i++)
+            {
+                MirrorVertices.Holes.Add(new Vertices());
+                foreach (Rectangle point in game.mirrorPointsHoles[i])
+                {
+                    MirrorVertices.Holes[i].Add(new Point2D(point.X + point.Width / 2, point.Y + point.Height / 2));
                 }
             }
         }
@@ -302,6 +326,24 @@ namespace WindowsGame1.Utilities
                     game.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.LineList, vertices, 0, vertices.Count() / 2);
                 }
             }
+            if (this.mirrorMode)
+            {
+                for (int i = 0; i < MirrorVertices.Holes.Count; i++)
+                {
+                    int totalLinesToDraw = MirrorVertices.Holes[i].Count;
+                    if (totalLinesToDraw > 0)
+                    {
+
+                        game.basicEffect.CurrentTechnique.Passes[0].Apply();
+
+                        Color color = Color.Green;
+
+                        //Get vertices from polygon 
+                        var vertices = this.getVertexPositionColor(MirrorVertices.Holes[i], color, Settings.DrawStyle.None, game, true);
+                        game.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.LineList, vertices, 0, vertices.Count() / 2);
+                    }
+                }
+            }
         }
 
         public VertexPositionColor[] getVertexPositionColor(Vertices verticeIn, Color color, Settings.DrawStyle drawStyle, Game1 game, bool closed)
@@ -467,6 +509,7 @@ namespace WindowsGame1.Utilities
         {
             Vertices.Clear();
             ControlVertices.Clear();
+            MirrorVertices.Clear();
         }
     }
 }
